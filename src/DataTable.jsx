@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const DataTable = () => {
   const [formData, setFormData] = useState({
@@ -7,6 +7,13 @@ const DataTable = () => {
     age: "",
   });
   const [data, setData] = useState([]);
+  const [editId, setEditId] = useState(false);
+
+  useEffect(() => {
+    if (!editId) return;
+    let selectItem = document.querySelectorAll(`[id='${editId}']`);
+    selectItem[0].focus();
+  }, [editId]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -23,6 +30,11 @@ const DataTable = () => {
       setData([...data, newItem]);
       setFormData({ name: "", age: "", gender: "" });
     }
+  };
+
+  const handleDelete = (id) => {
+    const updateList = data.filter((item) => item.id !== id);
+    setData(updateList);
   };
 
   return (
@@ -76,12 +88,27 @@ const DataTable = () => {
           <tbody>
             {data.map((item) => (
               <tr key={item.id}>
-                <td id={item.id}>{item.name}</td>
-                <td id={item.id}>{item.gender}</td>
-                <td id={item.id}>{item.age}</td>
+                <td id={item.id} contentEditable={editId === item.id}>
+                  {item.name}
+                </td>
+                <td id={item.id} contentEditable={editId === item.id}>
+                  {item.gender}
+                </td>
+                <td id={item.id} contentEditable={editId === item.id}>
+                  {item.age}
+                </td>
                 <td className="actions">
-                  <button className="edit">edit</button>
-                  <button className="delete">delete</button>
+                  <button className="edit" onClick={() => setEditId(item.id)}>
+                    edit
+                  </button>
+                  <button
+                    className="delete"
+                    onClick={() => {
+                      handleDelete(item.id);
+                    }}
+                  >
+                    delete
+                  </button>
                 </td>
               </tr>
             ))}
