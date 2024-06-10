@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const DataTable = () => {
   const [formData, setFormData] = useState({
@@ -8,6 +8,18 @@ const DataTable = () => {
   });
   const [data, setData] = useState([]);
   const [editId, setEditId] = useState(false);
+  const outSideClick = useRef(false);
+  const [search, setSearch] = useState("");
+  const [curPage, setCurPage] = useState(1);
+
+  const itemsPerPage = 5;
+  const LastItem = curPage * 5;
+  const indexOfFirstItem = LastItem - itemsPerPage;
+
+  let filteredItems = data.filter((item) =>
+    item.name.toLowerCase().includes(search.toLowerCase())
+  );
+  const filterData = filteredItems.slice(indexOfFirstItem, LastItem);
 
   useEffect(() => {
     if (!editId) return;
@@ -15,8 +27,36 @@ const DataTable = () => {
     selectItem[0].focus();
   }, [editId]);
 
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (outSideClick.current && !outSideClick.current.contains(e.target)) {
+        setEditId(false);
+      }
+    };
+
+    document.addEventListener("click", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    setCurPage(1);
+  }, [search]);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleEdit = (id, updatedData) => {
+    if (!editId || editId !== id) {
+      return;
+    }
+    const updateList = data.map((item) =>
+      item.id === id ? { ...item, updatedData } : item
+    );
+    setData(updateList);
   };
 
   const handleAddClick = () => {
@@ -33,8 +73,15 @@ const DataTable = () => {
   };
 
   const handleDelete = (id) => {
+    if (filterData.length === 1 && curPage !== 1) {
+      setCurPage((prev) => prev - 1);
+    }
     const updateList = data.filter((item) => item.id !== id);
     setData(updateList);
+  };
+
+  const handleSearch = (e) => {
+    setSearch(e.target.value);
   };
 
   return (
@@ -71,12 +118,12 @@ const DataTable = () => {
         <input
           type="text"
           placeholder="Search by name"
-          value={""}
-          onChange={() => {}}
+          value={search}
+          onChange={handleSearch}
           className="search-input"
         />
 
-        <table>
+        <table ref={outSideClick}>
           <thead>
             <tr>
               <th>Name</th>
@@ -86,15 +133,33 @@ const DataTable = () => {
             </tr>
           </thead>
           <tbody>
-            {data.map((item) => (
+            {filterData.map((item) => (
               <tr key={item.id}>
-                <td id={item.id} contentEditable={editId === item.id}>
+                <td
+                  id={item.id}
+                  contentEditable={editId === item.id}
+                  onBlur={(e) => {
+                    handleEdit(item.id, { name: e.target.innerText });
+                  }}
+                >
                   {item.name}
                 </td>
-                <td id={item.id} contentEditable={editId === item.id}>
+                <td
+                  id={item.id}
+                  contentEditable={editId === item.id}
+                  onBlur={(e) => {
+                    handleEdit(item.id, { name: e.target.innerText });
+                  }}
+                >
                   {item.gender}
                 </td>
-                <td id={item.id} contentEditable={editId === item.id}>
+                <td
+                  id={item.id}
+                  contentEditable={editId === item.id}
+                  onBlur={(e) => {
+                    handleEdit(item.id, { name: e.target.innerText });
+                  }}
+                >
                   {item.age}
                 </td>
                 <td className="actions">
@@ -114,7 +179,25 @@ const DataTable = () => {
             ))}
           </tbody>
         </table>
-        <div className="pagination"></div>
+
+        <div className="pagination">
+          {Array.from(
+            { length: Math.ceil(filteredItems.length / itemsPerPage) },
+            (_, index) => (
+              <button
+                key={index + 1}
+                onClick={() => {
+                  setCurPage(index + 1);
+                }}
+                style={{
+                  backgroundColor: curPage === index + 1 && "lightgreen",
+                }}
+              >
+                {index + 1}
+              </button>
+            )
+          )}
+        </div>
       </div>
     </div>
   );
